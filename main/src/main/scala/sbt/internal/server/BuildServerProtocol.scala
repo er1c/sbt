@@ -204,6 +204,7 @@ object BuildServerProtocol {
     bspBuildTargetCompileItem := bspCompileTask.value,
     bspBuildTargetRun := bspRunTask.evaluated,
     bspBuildTargetScalacOptionsItem := scalacOptionsTask.value,
+    bspDebugSessionStart := bspDebugSessionStartTask.value,
     bspInternalDependencyConfigurations := internalDependencyConfigurationsSetting.value,
     bspScalaTestClassesItem := scalaTestClassesTask.value,
     bspScalaMainClassesItem := scalaMainClassesTask.value,
@@ -321,6 +322,36 @@ object BuildServerProtocol {
             val targets = param.targets.map(_.uri).mkString(" ")
             val command = Keys.bspScalaMainClasses.key
             val _ = callback.appendExec(s"$command $targets", Some(r.id))
+
+          case r: JsonRpcRequestMessage if r.method == "debugSession/start" =>
+            val param = Converter.fromJson[DebugSessionParams](json(r)).get
+            val targets = param.targets.map(_.uri).mkString(" ")
+            // dataKind
+            // data
+            val command = Keys.bspDebugSessionStart.key
+
+            /*
+            val paramJson = json(r)
+            val param = Converter.fromJson[RunParams](json(r)).get
+            val scope = workspace.getOrElse(
+              param.target,
+              throw LangServerError(
+                ErrorCodes.InvalidParams,
+                s"'${param.target}' is not a valid build target identifier"
+              )
+            )
+            val project = scope.project.toOption.get.asInstanceOf[ProjectRef].project
+            val config = configurationMap(scope.config.toOption.get).id
+            val task = bspBuildTargetRun.key
+            val paramStr = CompactPrinter(paramJson)
+            val _ = callback.appendExec(
+              s"$project / $config / $task $paramStr",
+              Some(r.id)
+            )
+
+             */
+
+            ???
         },
         onResponse = PartialFunction.empty,
         onNotification = PartialFunction.empty,
@@ -482,6 +513,15 @@ object BuildServerProtocol {
   private val jsonParser: Parser[Try[JValue]] = (Parsers.any *)
     .map(_.mkString)
     .map(JsonParser.parseFromString)
+
+  private def bspDebugSessionStartTask: Def.Initialize[Task[DebugSessionAddress]] = Def.task {
+    val debugParams = jsonParser
+      .map(_.flatMap(json => Converter.fromJson[DebugSessionParams](json)))
+      .parsed
+      .get
+
+    ???
+  }
 
   private def bspRunTask: Def.Initialize[InputTask[Unit]] = Def.inputTaskDyn {
     val runParams = jsonParser
